@@ -2,24 +2,34 @@
 import { useState } from "react";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { toast,Toaster } from 'react-hot-toast';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    console.log(form);
+    try {
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
     const data = await res.json();
-    if (res.status === 200) alert("Login success! JWT: " + data.token);
-    else alert(await res.text());
-  };
+    console.log(data);
+    if (res.status === 200) {
+      toast.success('Login successfully!')
+    }else if (res.status === 403) 
+      toast.error('Login fail! please try again')
+  } catch (error) {
+    console.log(error);
+    toast.error('Something went wrong!')
+  }};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600">
+      <div><Toaster/></div>
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -39,7 +49,7 @@ export default function LoginPage() {
             <input
               type="email"
               placeholder="Email"
-              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-black"
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
@@ -49,7 +59,7 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="Password"
-              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-black"
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
             />
