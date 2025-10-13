@@ -40,7 +40,8 @@ export async function POST(req: Request) {
             await prisma.auditLog.create({
                 data: {
                 userId: user.id,
-                action: "otp_expired",
+                action: "login_failed",
+                details:"OTP expired",
                 success: false,
                 },
             });
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
             await prisma.auditLog.create({
                 data: {
                 userId: user.id,
-                action: "otp_success",
+                action: "login_success",
+                details:" OTP verified",
                 success: true,
                 },
             });
@@ -68,7 +70,8 @@ export async function POST(req: Request) {
         await prisma.auditLog.create({
             data: {
             userId: user.id,
-            action: "invalid_otp",
+            action: "login_failed",
+            details: "Invalid OTP entered",
             success: false,
             },
         });

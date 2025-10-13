@@ -54,7 +54,8 @@ export async function POST(req: Request) {
       await prisma.auditLog.create({
         data: {
           userId: user.id,
-          action: "wrong_password",
+          action: "login_failed",
+          details: "Invalid password",
           success: false,
         },
       });
