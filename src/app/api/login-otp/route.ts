@@ -40,7 +40,8 @@ export async function POST(req: Request) {
             await prisma.auditLog.create({
                 data: {
                 userId: user.id,
-                action: "otp_expired",
+                action: "login_failed",
+                details:"OTP expired",
                 success: false,
                 },
             });
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
             await prisma.auditLog.create({
                 data: {
                 userId: user.id,
-                action: "otp_success",
+                action: "login_success",
+                details:" OTP verified",
                 success: true,
                 },
             });
@@ -68,36 +70,15 @@ export async function POST(req: Request) {
         await prisma.auditLog.create({
             data: {
             userId: user.id,
-            action: "invalid_otp",
+            action: "login_failed",
+            details: "Invalid OTP entered",
             success: false,
             },
         });
 
         return new Response("Invalid OTP", { status: 401 });
     }
-    // Reset failed login count
-    // await prisma.user.update({
-    //   where: { id: user.id },
-    //   data: { failed_login_count: 0, is_locked: false, lock_expires_at: null },
-    // });
-
-    // // Create JWT token
-    // const token = jwt.sign(
-    //   { id: user.id, email: user.email },
-    //   JWT_SECRET,
-    //   { expiresIn: "1h" }
-    // );
-
-    // // Audit log
-    // await prisma.auditLog.create({
-    //   data: {
-    //     userId: user.id,
-    //     action: "login_success",
-    //     success: true,
-    //   },
-    // });
-
-    //return new Response(JSON.stringify({ message: "Login success", token }), { status: 200 });
+  
   } catch (err: any) {
     console.error(err);
     return new Response("Login error", { status: 500 });

@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
+
     await prisma.user.update({
       where: { email },
       data: { password_hash: hashed, password_last_changed: new Date() },
@@ -26,5 +27,6 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ message: "Server error" }), { status: 500 });
+
   }
 }

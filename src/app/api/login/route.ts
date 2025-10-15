@@ -51,6 +51,7 @@ export async function POST(req: Request) {
 
       await prisma.auditLog.create({
         data: { userId: user.id, action: "wrong_password", success: false },
+
       });
 
       return new Response("Invalid email or password", { status: 401 });
@@ -104,6 +105,16 @@ export async function POST(req: Request) {
         },
       });
 
+
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "otp_pending",
+          details: "OTP sent to email",
+          success: true,
+        },
+      });
+
       await prisma.user.update({
         where: { id: user.id },
         data: { failed_login_count: 0, is_locked: false, lock_expires_at: null },
@@ -115,6 +126,7 @@ export async function POST(req: Request) {
       console.error("🚨 Error sending OTP email:", error.message);
       return new Response("Error sending OTP email", { status: 500 });
     }
+
   } catch (err: any) {
     console.error("🚨 Server error in login route:", err.message);
     return new Response("Server error: " + err.message, { status: 500 });
