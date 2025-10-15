@@ -1,52 +1,58 @@
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+import { randomInt } from "crypto";
 import nodemailer from "nodemailer";
+
+const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
 
-    // Check if the email exists in the user table
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return new Response("No account found with that email.", { status: 404 });
+      return new Response(JSON.stringify({ message: "Email not found" }), { status: 404 });
     }
 
-    // Generate a 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // OTP expires in 10 minutes
-    const expires_at = new Date(Date.now() + 10 * 60 * 1000);
+    const otp = String(randomInt(100000, 999999));
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store OTP in database
-    await prisma.passwordResetOTP.create({
-      data: {
-        email,
-        otp,
-        expires_at,
-      },
-    });
-
-    // Setup email transporter
     const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // e.g. your Gmail address
-        pass: process.env.EMAIL_PASS, // app-specific password
-      },
-    });
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+      });
 
-    // Send the OTP via email
-    await transporter.sendMail({
-      from: `"Security System" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Your OTP Code",
-      text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
-      html: `<p>Your OTP is <b>${otp}</b>.</p><p>This code expires in 10 minutes.</p>`,
-    });
+    try {
+      console.log("📤 Sending email...");
+      await transporter.sendMail({
+        from: process.env.SMTP_SERVER_USERNAME,
+        to: user.email,
+        subject: 'Your OTP Code',
+        text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
+        html: `<p>Your OTP is: <strong>${otp}</strong></p>`,
+      });
 
-    return new Response(JSON.stringify({ message: "OTP sent successfully" }), { status: 200 });
-  } catch (error) {
-    console.error("Error sending OTP:", error);
-    return new Response("Failed to send OTP", { status: 500 });
+      console.log("✅ Email sent, saving OTP to DB...");
+
+       await prisma.passwordResetOTP.create({
+      data: { email, otp, expires_at: expiresAt },
+     });
+
+    console.log(`🔑 OTP for ${email}: ${otp}`);
+      console.log("✅ OTP saved successfully");
+      return new Response("OTP sent to your email", { status: 200 });
+    } catch (error: any) {
+      console.error("🚨 Error sending OTP email:", error.message);
+      return new Response("Error sending OTP email", { status: 500 });
+
+    }
+
+   
+  } catch (err) {
+    console.error("Error:", err);
+    return new Response(JSON.stringify({ message: "Server error" }), { status: 500 });
   }
 }

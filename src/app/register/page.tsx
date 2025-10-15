@@ -2,9 +2,15 @@
 import { useState } from "react";
 import { FaUser, FaEnvelope, FaLock } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { toast, Toaster } from "react-hot-toast";
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [passwordStrength, setPasswordStrength] = useState("");
 
   const handlePasswordChange = (password: string) => {
@@ -19,16 +25,30 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    if (form.password !== form.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+      }),
     });
-    alert(await res.text());
+
+    const text = await res.text();
+    if (res.ok) toast.success("Registration successful!");
+    else toast.error(text);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500">
+      <Toaster />
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -49,12 +69,11 @@ export default function RegisterPage() {
               type="text"
               placeholder="Username"
               className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition text-black"
-              onChange={(e) =>
-                setForm({ ...form, username: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
             />
           </div>
+
           <div className="relative">
             <FaEnvelope className="absolute top-3 left-3 text-gray-400" />
             <input
@@ -65,6 +84,7 @@ export default function RegisterPage() {
               required
             />
           </div>
+
           <div className="relative">
             <FaLock className="absolute top-3 left-3 text-gray-400" />
             <input
@@ -86,6 +106,20 @@ export default function RegisterPage() {
               Password strength: {passwordStrength}
             </p>
           </div>
+
+          <div className="relative">
+            <FaLock className="absolute top-3 left-3 text-gray-400" />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition text-black"
+              onChange={(e) =>
+                setForm({ ...form, confirmPassword: e.target.value })
+              }
+              required
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full bg-purple-500 text-white py-3 rounded-xl font-semibold hover:bg-purple-600 transition"
@@ -97,7 +131,7 @@ export default function RegisterPage() {
         <div className="flex justify-between mt-4 text-sm text-gray-500">
           <p>
             Already have an account?{" "}
-            <a href="/login" className="hover:underline text-purple-500">
+            <a href="/" className="hover:underline text-purple-500">
               Login
             </a>
           </p>

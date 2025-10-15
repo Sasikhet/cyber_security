@@ -1,79 +1,161 @@
 "use client";
+
 import { useState } from "react";
-import { FaLock } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";  
+export default function ResetPasswordPage() {
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const router = useRouter();
 
-export default function ResetPasswordPage({ searchParams }: any) {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [match, setMatch] = useState(true);
+  // Step 1: Request OTP
+  const handleRequestOtp = async () => {
+    try {
+      const res = await fetch("/api/request-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-  const token = searchParams?.token; // You send token in the URL
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setMatch(false);
-      return;
+      //const data = await res.json();
+      if (res.ok) {
+        setMessage("✅ OTP sent! Check your email.");
+        setStep(2);
+      } else {
+       setMessage("❌ Failed to send OTP");
+      }
+    } catch (err) {
+      setMessage("❌ Server error while sending OTP.");
     }
+  };
 
-    const res = await fetch("/api/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
-    });
-    alert(await res.text());
+  // Step 2: Verify OTP
+  const handleVerifyOtp = async () => {
+    try {
+      const res = await fetch("/api/verify-otp2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("✅ OTP verified! Enter your new password.");
+        setStep(3);
+      } else {
+        setMessage(data.message || "❌ Invalid or expired OTP.");
+      }
+    } catch {
+      setMessage("❌ Error verifying OTP.");
+    }
+  };
+
+  // Step 3: Change Password
+  const handleChangePassword = async () => {
+    try {
+      const res = await fetch("/api/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, newPassword }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("✅ Password changed successfully!");
+        setStep(1);
+        setEmail("");
+        setOtp("");
+        setNewPassword("");
+        router.push("/");
+      } else {
+        setMessage(data.message || "❌ Failed to change password.");
+      }
+    } catch {
+      setMessage("❌ Server error while changing password.");
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500">
-      <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md"
-      >
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          Set New Password
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-400 to-purple-500">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          Reset Password
         </h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <FaLock className="absolute top-3 left-3 text-gray-400" />
-            <input
-              type="password"
-              placeholder="New Password"
-              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="relative">
-            <FaLock className="absolute top-3 left-3 text-gray-400" />
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              className="w-full p-3 pl-10 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
-          {!match && (
-            <p className="text-red-500 text-sm">Passwords do not match</p>
-          )}
-          <button
-            type="submit"
-            className="w-full bg-purple-500 text-white py-3 rounded-xl font-semibold hover:bg-purple-600 transition"
-          >
-            Reset Password
-          </button>
-        </form>
+        
+        {message && (
+          <p className="mb-4 text-center text-sm text-gray-700 bg-gray-100 p-2 rounded">
+            {message}
+          </p>
+        )}
 
-        <div className="mt-4 text-center text-gray-500 text-sm">
-          <a href="/login" className="hover:underline text-purple-500">
-            Back to Login
-          </a>
-        </div>
-      </motion.div>
+        {step === 1 && (
+          <div className="flex flex-col">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 mb-4 border rounded-xl text-black"
+              required
+            />
+            <button
+              onClick={handleRequestOtp}
+              className="w-full bg-indigo-500 text-white py-3 rounded-xl font-semibold hover:bg-indigo-600 transition"
+            >
+              Send OTP
+            </button>
+            <a href="/" className="hover:underline text-purple-500 mt-3">
+              Back
+            </a>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="flex flex-col">
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full p-3 mb-4 border rounded-xl text-black"
+              required
+            />
+            <button
+              onClick={handleVerifyOtp}
+              className="w-full bg-indigo-500 text-white py-3 rounded-xl font-semibold hover:bg-indigo-600 transition"
+            >
+              Verify OTP
+            </button>
+            <a href="/" className="hover:underline text-purple-500 mt-3">
+              Back
+            </a>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="flex flex-col">
+            <input
+              type="password"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full p-3 mb-4 border rounded-xl text-black"
+              required
+            />
+            <button
+              onClick={handleChangePassword}
+              className="w-full bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition"
+            >
+              Change Password
+            </button>
+            <a href="/" className="hover:underline text-purple-500 mt-3">
+              Back
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

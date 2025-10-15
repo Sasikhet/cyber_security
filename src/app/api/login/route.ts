@@ -1,38 +1,37 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import nodemailer from 'nodemailer';
-import otpGenerator from 'otp-generator';
+import nodemailer from "nodemailer";
+import otpGenerator from "otp-generator";
 
 const prisma = new PrismaClient();
-const MAX_FAILED_LOGIN = 5; // Lock after 5 failed attempts
-const LOCK_DURATION_MINUTES = 15; // lock duration
+const MAX_FAILED_LOGIN = 5;
+const LOCK_DURATION_MINUTES = 15;
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
-
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const { identifier, password } = await req.json();
+      console.log("🟦 Login attempt:", identifier);
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
       include: { logs: true },
     });
-
+   
+    
     if (!user) {
+      console.log("❌ User not found");
       return new Response("Invalid email or password", { status: 401 });
     }
-
-    // Check if account is locked
+  
     const now = new Date();
-    const expires_at = new Date(Date.now() + 5 * 60 * 1000);
     if (user.is_locked && user.lock_expires_at && now < user.lock_expires_at) {
       return new Response("Account is locked. Try later.", { status: 403 });
     }
 
-    // Compare password
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
-
     if (!passwordMatch) {
-      // Increment failed login count
+      console.log("❌ Wrong password for:", identifier);
       let failedCount = user.failed_login_count + 1;
       let lockExpiresAt = user.lock_expires_at;
 
@@ -50,28 +49,14 @@ export async function POST(req: Request) {
         },
       });
 
-      // Audit log
       await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "wrong_password",
-          success: false,
-        },
+        data: { userId: user.id, action: "wrong_password", success: false },
       });
 
       return new Response("Invalid email or password", { status: 401 });
     }
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: process.env.SMTP_SERVER_HOST,
-      port: process.env.SMTP_SERVER_PORT ? parseInt(process.env.SMTP_SERVER_PORT) : 465,
-      secure: true,
-      auth: {
-        user: process.env.SMTP_SERVER_USERNAME,
-        pass: process.env.SMTP_SERVER_PASSWORD,
-      },
-    });
+    
+    console.log("✅ Password correct — generating OTP...");
 
     const otp = otpGenerator.generate(6, { 
       digits: true,
@@ -80,64 +65,58 @@ export async function POST(req: Request) {
       lowerCaseAlphabets: false 
     });
 
+    const expires_at = new Date(Date.now() + 5 * 60 * 1000);
+
+    // ✅ Verify email config before creating transporter
+    console.log("📧 Using email:", process.env.SMTP_SERVER_USERNAME);
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+  });
+
+
     const subject = 'Your OTP Code';
     const text = `Your OTP code is: ${otp}. It will expire in 5 minutes.`;
     const html = `<p>Your OTP is: <strong>${otp}</strong></p>`;
 
-    try{
+    try {
+      console.log("📤 Sending email...");
       await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: process.env.SMTP_SERVER_USERNAME,
         to: user.email,
         subject,
         text,
         html,
       });
+
+      console.log("✅ Email sent, saving OTP to DB...");
+
       await prisma.passwordResetOTP.create({
         data: {
-          otp: otp,
+          otp,
           email: user.email,
           created_at: now,
-          expires_at: expires_at,
+          expires_at,
         },
       });
 
-    //Reset failed login count
       await prisma.user.update({
         where: { id: user.id },
         data: { failed_login_count: 0, is_locked: false, lock_expires_at: null },
       });
 
+      console.log("✅ OTP saved successfully");
       return new Response("OTP sent to your email", { status: 200 });
-    } catch(error){
-      console.error("Error sending OTP email:", error);
+    } catch (error: any) {
+      console.error("🚨 Error sending OTP email:", error.message);
       return new Response("Error sending OTP email", { status: 500 });
     }
-    
-    // Reset failed login count
-    // await prisma.user.update({
-    //   where: { id: user.id },
-    //   data: { failed_login_count: 0, is_locked: false, lock_expires_at: null },
-    // });
-
-    // // Create JWT token
-    // const token = jwt.sign(
-    //   { id: user.id, email: user.email },
-    //   JWT_SECRET,
-    //   { expiresIn: "1h" }
-    // );
-
-    // // Audit log
-    // await prisma.auditLog.create({
-    //   data: {
-    //     userId: user.id,
-    //     action: "login_success",
-    //     success: true,
-    //   },
-    // });
-
-    //return new Response(JSON.stringify({ message: "Login success", token }), { status: 200 });
   } catch (err: any) {
-    console.error(err);
-    return new Response("Login error", { status: 500 });
+    console.error("🚨 Server error in login route:", err.message);
+    return new Response("Server error: " + err.message, { status: 500 });
   }
 }
