@@ -50,6 +50,8 @@ export async function POST(req: Request) {
             success: true,
             },
     });
+    await prisma.passwordResetOTP.deleteMany({ where: { email } });
+    
     return new Response(JSON.stringify({ message: "OTP verified" }), { status: 200 });
   } catch (err) {
     console.error(err);
