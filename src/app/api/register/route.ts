@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { username, email, password } = await req.json();
 
     // Password complexity check
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
     if (!regex.test(password)) {
       return new Response("Password not strong enough", { status: 400 });
     }

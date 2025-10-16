@@ -105,7 +105,7 @@ export default function LoginPage() {
                 />
               </div>
               <button disabled={loading} className="w-full bg-indigo-500 text-white py-3 rounded-xl font-semibold hover:bg-indigo-600 transition">
-                Send OTP
+                Login
               </button>
 
               {/* 🔗 Register and Forgot Password links */}

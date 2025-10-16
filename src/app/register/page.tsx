@@ -18,7 +18,7 @@ export default function RegisterPage() {
 
     // Simple password strength check
     if (password.length < 8) setPasswordStrength("Weak");
-    else if (password.match(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)/))
+    else if (password.match(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[0-9])(?=.*[!@#$%^&*])/))
       setPasswordStrength("Strong");
     else setPasswordStrength("Medium");
   };
