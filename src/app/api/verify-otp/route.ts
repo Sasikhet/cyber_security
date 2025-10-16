@@ -8,13 +8,11 @@ export async function POST(req: Request) {
   try {
     const { identifier, otp } = await req.json();
 
-    // 1️⃣ Find the OTP record (by email only, since OTPs are tied to email)
     const otpRecord = await prisma.passwordResetOTP.findFirst({
       where: { email: identifier, otp },
       orderBy: { created_at: "desc" },
     });
 
-    // If not found by email, try to resolve identifier → email from username
     let email = identifier;
     if (!otpRecord) {
       const userByUsername = await prisma.user.findUnique({
@@ -28,7 +26,6 @@ export async function POST(req: Request) {
       orderBy: { created_at: "desc" },
     });
 
-    // 2️⃣ Find user by username or email
     const user = await prisma.user.findFirst({
       where: {
         OR: [{ email }, { username: identifier }],
@@ -74,7 +71,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3️⃣ Generate JWT token
     const role = user.roles[0]?.role?.name || "user";
 
     const token = jwt.sign(
@@ -91,9 +87,8 @@ export async function POST(req: Request) {
             details:"OTP verified",
             success: true,
             },
-        });
+    });
 
-    // 4️⃣ Delete used OTPs for that email
     await prisma.passwordResetOTP.deleteMany({ where: { email } });
 
     return new Response(JSON.stringify({ token }), { status: 200 });

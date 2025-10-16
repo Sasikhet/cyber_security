@@ -10,7 +10,7 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  // Step 1: Request OTP
+  //Request OTP
   const handleRequestOtp = async () => {
     try {
       const res = await fetch("/api/request-reset", {
@@ -21,17 +21,17 @@ export default function ResetPasswordPage() {
 
       //const data = await res.json();
       if (res.ok) {
-        setMessage("✅ OTP sent! Check your email.");
+        setMessage("OTP sent! Check your email.");
         setStep(2);
       } else {
-       setMessage("❌ Failed to send OTP");
+       setMessage("Failed to send OTP");
       }
     } catch (err) {
-      setMessage("❌ Server error while sending OTP.");
+      setMessage("Server error while sending OTP.");
     }
   };
 
-  // Step 2: Verify OTP
+  //Verify OTP
   const handleVerifyOtp = async () => {
     try {
       const res = await fetch("/api/verify-otp2", {
@@ -42,17 +42,17 @@ export default function ResetPasswordPage() {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage("✅ OTP verified! Enter your new password.");
+        setMessage("OTP verified! Enter your new password.");
         setStep(3);
       } else {
-        setMessage(data.message || "❌ Invalid or expired OTP.");
+        setMessage(data.message || "Invalid or expired OTP.");
       }
     } catch {
-      setMessage("❌ Error verifying OTP.");
+      setMessage("Error verifying OTP.");
     }
   };
 
-  // Step 3: Change Password
+  //Change Password
   const handleChangePassword = async () => {
     try {
       const res = await fetch("/api/change-password", {
@@ -60,20 +60,19 @@ export default function ResetPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, newPassword }),
       });
-
       const data = await res.json();
       if (res.ok) {
-        setMessage("✅ Password changed successfully!");
+        setMessage("Password changed successfully!");
         setStep(1);
         setEmail("");
         setOtp("");
         setNewPassword("");
         router.push("/");
       } else {
-        setMessage(data.message || "❌ Failed to change password.");
+        setMessage(data.message || "Failed to change password.");
       }
     } catch {
-      setMessage("❌ Server error while changing password.");
+      setMessage(`Error changing password.`);
     }
   };
 

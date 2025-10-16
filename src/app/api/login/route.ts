@@ -10,7 +10,7 @@ const LOCK_DURATION_MINUTES = 15;
 export async function POST(req: Request) {
   try {
     const { identifier, password } = await req.json();
-      console.log("🟦 Login attempt:", identifier);
+      console.log("Login attempt:", identifier);
     const user = await prisma.user.findFirst({
       where: {
         OR: [{ email: identifier }, { username: identifier }],
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
    
     
     if (!user) {
-      console.log("❌ User not found");
+      console.log("User not found");
       return new Response("Invalid email or password", { status: 401 });
     }
   
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatch) {
-      console.log("❌ Wrong password for:", identifier);
+      console.log("Wrong password for:", identifier);
       let failedCount = user.failed_login_count + 1;
       let lockExpiresAt = user.lock_expires_at;
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       return new Response("Invalid email or password", { status: 401 });
     }
     
-    console.log("✅ Password correct — generating OTP...");
+    console.log("Password correct — generating OTP...");
 
     const otp = otpGenerator.generate(6, { 
       digits: true,
@@ -71,8 +71,7 @@ export async function POST(req: Request) {
 
     const expires_at = new Date(Date.now() + 5 * 60 * 1000);
 
-    // ✅ Verify email config before creating transporter
-    console.log("📧 Using email:", process.env.SMTP_SERVER_USERNAME);
+    console.log("Using email:", process.env.SMTP_SERVER_USERNAME);
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
     const html = `<p>Your OTP is: <strong>${otp}</strong></p>`;
 
     try {
-      console.log("📤 Sending email...");
+      console.log("Sending email...");
       await transporter.sendMail({
         from: process.env.SMTP_SERVER_USERNAME,
         to: user.email,
@@ -97,7 +96,7 @@ export async function POST(req: Request) {
         html,
       });
 
-      console.log("✅ Email sent, saving OTP to DB...");
+      console.log("Email sent, saving OTP to DB...");
 
       await prisma.passwordResetOTP.create({
         data: {
@@ -122,10 +121,10 @@ export async function POST(req: Request) {
         data: { failed_login_count: 0, is_locked: false, lock_expires_at: null },
       });
 
-      console.log("✅ OTP saved successfully");
+      console.log("OTP saved successfully");
       return new Response("OTP sent to your email", { status: 200 });
     } catch (error: any) {
-      console.error("🚨 Error sending OTP email:", error.message);
+      console.error("Error sending OTP email:", error.message);
       await prisma.auditLog.create({
         data: {
           userId: user.id,
@@ -138,7 +137,7 @@ export async function POST(req: Request) {
     }
 
   } catch (err: any) {
-    console.error("🚨 Server error in login route:", err.message);
+    console.error("Server error in login route:", err.message);
     return new Response("Server error: " + err.message, { status: 500 });
   }
 }

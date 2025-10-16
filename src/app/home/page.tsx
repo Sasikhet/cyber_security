@@ -46,7 +46,7 @@ export default function HomePage() {
     }
   }, [router]);
 
-  // ✅ Force password reset if older than 90 days
+  //password reset if older than 90 days
   useEffect(() => {
     console.log("Checking password age...", user);
     if (user?.password_last_changed) {

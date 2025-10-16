@@ -20,7 +20,7 @@ export default function LoginPage() {
       body: JSON.stringify({ identifier: form.identifier, password: form.password }),
     });
 
-    const text = await res.text(); // read raw response first
+    const text = await res.text(); //read raw response first
     let data;
     try {
       data = JSON.parse(text);

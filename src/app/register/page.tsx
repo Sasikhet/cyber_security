@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const handlePasswordChange = (password: string) => {
     setForm({ ...form, password });
 
-    // Simple password strength check
+    //password strength check
     if (password.length < 8) setPasswordStrength("Weak");
     else if (password.match(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[0-9])(?=.*[!@#$%^&*])/))
       setPasswordStrength("Strong");
@@ -138,7 +138,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="mt-6 text-center text-gray-400 text-sm">
-          &copy; 2025 CyberSecure App
+          &copy; 2025 CyberSecurity App
         </div>
       </motion.div>
     </div>

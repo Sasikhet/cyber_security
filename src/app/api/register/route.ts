@@ -7,7 +7,6 @@ export async function POST(req: Request) {
   try {
     const { username, email, password } = await req.json();
 
-    // Password complexity check
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
     if (!regex.test(password)) {
       return new Response("Password not strong enough", { status: 400 });
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
 
     return new Response(JSON.stringify({ message: "User registered", user }), { status: 201 });
   } catch (err: any) {
-    console.error("REGISTER ERROR:", err);  // 🔍 Log full error
+    console.error("REGISTER ERROR:", err); 
     return new Response("Error registering user: " + err.message, { status: 500 });
   }
 }

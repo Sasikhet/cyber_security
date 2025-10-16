@@ -13,20 +13,19 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ message: "Email not found" }), { status: 404 });
     }
 
-
     const otp = String(randomInt(100000, 999999));
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     const transporter = nodemailer.createTransport({
           service: "gmail",
           auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+            user: process.env.SMTP_SERVER_USERNAME,
+            pass: process.env.SMTP_SERVER_PASSWORD,
           },
       });
 
     try {
-      console.log("📤 Sending email...");
+      console.log("Sending email...");
       await transporter.sendMail({
         from: process.env.SMTP_SERVER_USERNAME,
         to: user.email,
@@ -35,17 +34,17 @@ export async function POST(req: Request) {
         html: `<p>Your OTP is: <strong>${otp}</strong></p>`,
       });
 
-      console.log("✅ Email sent, saving OTP to DB...");
+      console.log("Email sent, saving OTP to DB...");
 
        await prisma.passwordResetOTP.create({
       data: { email, otp, expires_at: expiresAt },
      });
 
-    console.log(`🔑 OTP for ${email}: ${otp}`);
-      console.log("✅ OTP saved successfully");
+    console.log(`OTP for ${email}: ${otp}`);
+      console.log("OTP saved successfully");
       return new Response("OTP sent to your email", { status: 200 });
     } catch (error: any) {
-      console.error("🚨 Error sending OTP email:", error.message);
+      console.error("Error sending OTP email:", error.message);
       return new Response("Error sending OTP email", { status: 500 });
 
     }
