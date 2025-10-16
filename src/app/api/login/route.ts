@@ -50,7 +50,10 @@ export async function POST(req: Request) {
       });
 
       await prisma.auditLog.create({
-        data: { userId: user.id, action: "wrong_password", success: false },
+        data: { userId: user.id, 
+        action: "login_failed", 
+        details: "Password Incorrect",
+        success: false },
 
       });
 
@@ -74,8 +77,8 @@ export async function POST(req: Request) {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.SMTP_SERVER_USERNAME,
+        pass: process.env.SMTP_SERVER_PASSWORD,
       },
   });
 
@@ -105,7 +108,6 @@ export async function POST(req: Request) {
         },
       });
 
-
       await prisma.auditLog.create({
         data: {
           userId: user.id,
@@ -124,6 +126,14 @@ export async function POST(req: Request) {
       return new Response("OTP sent to your email", { status: 200 });
     } catch (error: any) {
       console.error("🚨 Error sending OTP email:", error.message);
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "otp_pending",
+          details: "Error sending OTP email",
+          success: false,
+        },
+      });
       return new Response("Error sending OTP email", { status: 500 });
     }
 

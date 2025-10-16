@@ -11,10 +11,16 @@ export async function POST(req: Request) {
     const { email, otp } = await req.json();
 
     // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const identifier = await req.json();
+      console.log("🟦 Login attempt:", identifier);
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
       include: { logs: true },
     });
+    console.log("User found:", user);
+
 
     const otpRecord = await prisma.passwordResetOTP.findFirst({
         where: { email: user?.email, otp: otp, expires_at: { gt: new Date() } },

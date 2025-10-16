@@ -28,13 +28,6 @@ export async function POST(req: Request) {
       orderBy: { created_at: "desc" },
     });
 
-    if (!record || new Date() > record.expires_at) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired OTP" }),
-        { status: 400 }
-      );
-    }
-
     // 2️⃣ Find user by username or email
     const user = await prisma.user.findFirst({
       where: {
@@ -42,11 +35,44 @@ export async function POST(req: Request) {
       },
       include: { roles: { include: { role: true } } },
     });
+    
 
     if (!user)
       return new Response(JSON.stringify({ message: "User not found" }), {
         status: 404,
       });
+
+    if (!record || record.otp !== otp) {
+      await prisma.auditLog.create({
+              data: {
+              userId: user.id,
+              action: "login_failed",
+              details:"OTP Invalid",
+              success: false,
+              },
+          });
+
+      return new Response(
+        JSON.stringify({ message: "OTP Invalid" }),
+        { status: 404 }
+      );
+    }
+
+    if (new Date() > record.expires_at) {
+      await prisma.auditLog.create({
+              data: {
+              userId: user.id,
+              action: "login_failed",
+              details:"OTP expired",
+              success: false,
+              },
+          });
+
+      return new Response(
+        JSON.stringify({ message: "OTP expired" }),
+        { status: 400 }
+      );
+    }
 
     // 3️⃣ Generate JWT token
     const role = user.roles[0]?.role?.name || "user";
@@ -56,6 +82,16 @@ export async function POST(req: Request) {
       JWT_SECRET,
       { expiresIn: "1h" }
     );
+
+  
+    await prisma.auditLog.create({
+            data: {
+            userId: user.id,
+            action: "login_success",
+            details:"OTP verified",
+            success: true,
+            },
+        });
 
     // 4️⃣ Delete used OTPs for that email
     await prisma.passwordResetOTP.deleteMany({ where: { email } });
