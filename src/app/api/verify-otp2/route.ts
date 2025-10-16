@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       orderBy: { created_at: "desc" },
     });
     
-    if (!record || new Date() > record.expires_at) {
+    if (!record || new Date() > record.expires_at || record.otp !== otp) {
       return new Response(JSON.stringify({ message: "Invalid or expired OTP" }), { status: 400 });
     }
     
